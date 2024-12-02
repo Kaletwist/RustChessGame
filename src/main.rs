@@ -50,7 +50,7 @@ fn main() {
             highlight(&mut buffer, &xmouse, &ymouse);
             check_piece = in_check(&pieces, &turn);
             if !check_piece.is_empty() {
-                update_pieces_check(&mut pieces, &mut square_contains, &turn, check_piece);
+                update_pieces_check(&mut pieces, &mut square_contains, &turn);
                 if check_mate(&pieces, &turn) {
                     if turn == 1 {
                         println!("Black Wins");
@@ -82,6 +82,7 @@ fn main() {
                         }
                         let mut mouse_up = false;
                         'outer: loop {
+                            update_pieces_check(&mut pieces, &mut square_contains, &turn);
                             mousedown = window.get_mouse_down(minifb::MouseButton::Left);
                             if !mouse_up {mouse_up = !window.get_mouse_down(minifb::MouseButton::Left);}
                             for (xpos, ypos) in pieces[piece_index].views.clone() {
@@ -134,7 +135,7 @@ fn check_mate(pieces: & Vec<ChessPieces>, turn: &i8) -> bool {
     }
     return true;
 }
-fn update_pieces_check(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<Vec<i8>>, turn: &i8, checking_pieces: Vec<usize>) {
+fn update_pieces_check(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<Vec<i8>>, turn: &i8) {
     for x in square_contains.iter_mut() {
         for y in x {
             *y = 0;
