@@ -9,7 +9,7 @@ pub fn king(piece: &ChessPieces, square_contains: &Vec<Vec<i8>>) -> Vec<(i32, i3
     else if piece.colour == "Black" {c = 2}
     for xmove in x-1..x+2 {
         for ymove in y-1..y+2 {
-            if is_on_board(xmove, ymove) && !(xmove == x && ymove == y) && square_contains[xmove as usize][ymove as usize] == c {
+            if is_on_board(xmove, ymove) && !(xmove == x && ymove == y) && square_contains[xmove as usize][ymove as usize] != c {
                 move_set.push((xmove, ymove));
             }
         }
@@ -27,8 +27,8 @@ pub fn pawn (piece: &ChessPieces, square_contains: &Vec<Vec<i8>>) -> Vec<(i32, i
         if is_on_board(x+1,y-1) && square_contains[(x+1) as usize][(y-1) as usize] == 2 {
             move_set.push((x + 1, y - 1));
         }
-        if is_on_board(x-1,y+1) && square_contains[(x - 1) as usize][(y - 1) as usize] == 2 {
-            move_set.push((x - 1, y + 1));
+        if is_on_board(x-1,y-1) && square_contains[(x - 1) as usize][(y - 1) as usize] == 2 {
+            move_set.push((x - 1, y - 1));
         }
         if is_on_board(x,y-1) && square_contains[(x) as usize][(y-1) as usize] == 0 {move_set.push((x, y - 1));}
     }

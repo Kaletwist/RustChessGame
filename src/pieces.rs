@@ -1,6 +1,7 @@
 use image::{imageops, open, DynamicImage, ImageBuffer, Rgba};
 use std::path::Path;
 use crate::moveset;
+#[derive(Clone)]
 pub struct ChessPieces {
     pub xpos: i32,
     pub ypos: i32,
