@@ -1,0 +1,10 @@
+[package]
+name = "ChessBoard2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+image = "0.25.5"
+minifb = "0.27.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"
