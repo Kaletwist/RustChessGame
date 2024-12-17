@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "ChessBoard2"
+name = "ChessBoard"
 version = "0.1.0"
 dependencies = [
  "image",
