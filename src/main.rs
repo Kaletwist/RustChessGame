@@ -43,14 +43,19 @@ fn main() {
     let mut mousedown: bool = false;
     let mut mouse_up = false;
     let mut check_piece: Vec<usize>;
-    let mut last_move: (i32, i32) = (0,0);
+    let mut last_pos: (i32, i32) = (0,0);
     let mut this_move: (i32, i32) = (9,9);
+
     while window.is_open() && !window.is_key_down(Key::Escape) {
+
         buffer = to_window_buffer(&board);
         mousedown =  window.get_mouse_down(minifb::MouseButton::Left);
+
         if let Some((xmouse , ymouse)) = window.get_mouse_pos(minifb::MouseMode::Clamp) {
+
             highlight(&mut buffer, &xmouse, &ymouse);
             check_piece = in_check(&pieces, &turn);
+
             if !check_piece.is_empty() {
                 update_pieces_check(&mut pieces, &mut square_contains, &turn);
                 if check_mate(&pieces, &turn) {
@@ -65,12 +70,14 @@ fn main() {
                 println!("Stale Mate");
                 return;
             }
+
             if mousedown {
                 let mut x = xmouse.floor() as i32;
                 let mut y: i32 = ymouse.floor() as i32;
                 let mut piece_index = 0;
                 x = x / 80;
                 y = y / 80;
+
                 if square_contains[x as usize][y as usize] == turn {
                     for piece in pieces.iter() {
                         if piece.xpos == x && piece.ypos == y {
@@ -78,46 +85,80 @@ fn main() {
                         }
                         piece_index += 1;
                     }
-                    en_passant(&this_move, &last_move, &turn, &mut pieces);
-                    castle(&square_contains, &mut pieces, &turn);
+
+                    en_passant(&this_move, &last_pos, &turn, &mut pieces);
+                    if pieces[piece_index].role == "King" {castle(&square_contains, &mut pieces, &turn, &piece_index)};
+
                     if !pieces[piece_index].views.is_empty(){
+
                         for (mut xpos, mut ypos) in pieces[piece_index].views.clone() {
                             xpos *= 80;
                             ypos *= 80;
                             highlight(&mut buffer, &(xpos as f32), &(ypos as f32));
                         }
+
                         let mut mouse_up = false;
                         'outer: loop {
                             update_pieces_check(&mut pieces, &mut square_contains, &turn);
+                            en_passant(&this_move, &last_pos, &turn, &mut pieces);
+                            if pieces[piece_index].role == "King" {castle(&square_contains, &mut pieces, &turn, &piece_index)};
                             mousedown = window.get_mouse_down(minifb::MouseButton::Left);
+
                             if !mouse_up {mouse_up = !window.get_mouse_down(minifb::MouseButton::Left);}
+
                             for (xpos, ypos) in pieces[piece_index].views.clone() {
                                 if let Some((mut xi, mut yi)) = window.get_mouse_pos(minifb::MouseMode::Clamp) {
                                     xi = (xi / 80.0).floor();
                                     yi = (yi / 80.0).floor(); 
-                                    if mousedown && mouse_up && xpos == (xi as i32) && ypos == (yi as i32) {
-                                        this_move = (xi as i32, yi as i32);
-                                        last_move = (pieces[piece_index].xpos, pieces[piece_index].ypos);
-                                        pickup_piece(&pieces[piece_index], &mut board);
-                                        let mut captured_piece_index: usize = usize::MAX;
-                                        if square_contains[xpos as usize][ypos as usize] != turn && square_contains[xpos as  usize][ypos as usize] != 0 {
-                                            captured_piece_index = capture(&xpos, &ypos, &mut pieces, &mut board);
-                                        }else if pieces[piece_index].role == "Pawn" && pieces[piece_index].xpos != this_move.0 {
-                                            if square_contains[this_move.0 as usize][(this_move.1 - 1) as usize] != 0 {
-                                                captured_piece_index = capture(&this_move.0, &(this_move.1 - 1), &mut pieces, &mut board);
-                                            }else if square_contains[this_move.0 as usize][(this_move.1 + 1) as usize] != 0 {
-                                                captured_piece_index = capture(&this_move.0, &(this_move.1 + 1), &mut pieces, &mut board);
+
+                                    if !mousedown || !mouse_up || xpos != (xi as i32) || ypos != (yi as i32) {continue;}
+                                    this_move = (xi as i32, yi as i32);
+                                    last_pos = (pieces[piece_index].xpos, pieces[piece_index].ypos);
+                                    if (last_pos.0 - this_move.0).abs() > 1 && pieces[piece_index].role == "King" {
+                                        if last_pos.0 - this_move.0 > 0 {
+                                            for piece in pieces.iter_mut() {
+                                                if piece.role == "Rook" && piece.xpos == 0 && piece.ypos == this_move.1 {
+                                                    pickup_piece(piece, &mut board);
+                                                    piece.xpos = this_move.0 + 1;
+                                                    place_piece(piece, &mut board);
+                                                }
+                                            }   
+                                        }else {
+                                            for piece in pieces.iter_mut() {
+                                                if piece.role == "Rook" && piece.xpos == 7 && piece.ypos == this_move.1 {
+                                                    pickup_piece(piece, &mut board);
+                                                    piece.xpos = this_move.0 - 1;
+                                                    place_piece(piece, &mut board);
+                                                }
                                             }
                                         }
-                                        if captured_piece_index < piece_index {piece_index-=1;}
-                                        pieces[piece_index].xpos = this_move.0;
-                                        pieces[piece_index].ypos = this_move.1;
-                                        update_pieces(&mut pieces, &mut square_contains);
-                                        place_piece(&mut pieces[piece_index], &mut board);
-                                        pieces[piece_index].moved = true;
-                                        if turn == 1 {turn = 2}else {turn = 1}
-                                        break 'outer;
+                                    } 
+                                    
+                                    pickup_piece(&pieces[piece_index], &mut board);
+                                    let mut captured_piece_index: usize = usize::MAX;
+
+                                    if square_contains[xpos as usize][ypos as usize] != turn && square_contains[xpos as  usize][ypos as usize] != 0 {
+                                        captured_piece_index = capture(&xpos, &ypos, &mut pieces, &mut board);
+                                    }else if pieces[piece_index].role == "Pawn" && pieces[piece_index].xpos != this_move.0 {
+                                        if square_contains[this_move.0 as usize][(this_move.1 - 1) as usize] != 0 {
+                                            captured_piece_index = capture(&this_move.0, &(this_move.1 - 1), &mut pieces, &mut board);
+                                        }else if square_contains[this_move.0 as usize][(this_move.1 + 1) as usize] != 0 {
+                                            captured_piece_index = capture(&this_move.0, &(this_move.1 + 1), &mut pieces, &mut board);
+                                        }
                                     }
+
+                                    if captured_piece_index < piece_index {piece_index-=1;}
+
+                                    pieces[piece_index].xpos = this_move.0;
+                                    pieces[piece_index].ypos = this_move.1;
+
+                                    update_pieces(&mut pieces, &mut square_contains);
+                                    place_piece(&mut pieces[piece_index], &mut board);
+                                        
+                                    pieces[piece_index].moved = true;
+                                    if turn == 1 {turn = 2}else {turn = 1}
+                                        
+                                    break 'outer;
                                 }
                             }
                             if (mousedown && mouse_up){
@@ -134,82 +175,46 @@ fn main() {
         }
     }
 }
-fn castle(square_contains: & Vec<Vec<i8>>, pieces: & Vec<ChessPieces>, turn: &i8) {
-    let mut white_short_castle = true;
-    let mut white_long_castle = true;
-    let mut black_short_castle = true;
-    let mut black_long_castle = true;
-    if !in_check(&pieces, &turn).is_empty() {
-        return;
-    }
-    for piece in pieces {
-        if piece.role == "King" && piece.moved {
-            if piece.colour == "White" {
-                white_long_castle = false;
-                white_short_castle = false;
-            }else {
-                black_long_castle = false;
-                black_short_castle = false;
-            }
+fn castle(square_contains: & Vec<Vec<i8>>, pieces: & mut Vec<ChessPieces>, turn: &i8, king_index: &usize) {
+    let mut long_castle: bool = true;
+    let mut short_castle: bool = true;
+    let ypos: usize = pieces[*king_index].ypos as usize;
+    let king_colour: String = pieces[*king_index].colour.clone();
+    'outer: for x in 1..3 {
+        if square_contains[x][ypos] != 0 {
+            short_castle = false;
+            break;
         }
-        if piece.role == "Rook" && !piece.moved{
-            if piece.colour == "White" && piece.ypos == 7{
-                if piece.xpos == 7 {
-                    continue;
-                }else if piece.xpos != 0{
-                    white_long_castle = false;
-                }
-                if piece.xpos == 0 {
-                    continue;
-                }else {
-                    white_short_castle = false;
-                }
-            }
-            if piece.colour == "Black" && piece.ypos == 7{
-                if piece.xpos == 7 {
-                    continue;
-                }else if piece.xpos != 0{
-                    black_long_castle = false;
-                }
-                if piece.xpos == 0 {
-                    continue;
-                }else {
-                    black_short_castle = false;
+        for piece in pieces.iter() {
+            for view in piece.views.iter() {
+                if (x as i32, ypos as i32) == *view && piece.colour != king_colour {
+                    short_castle = false;
+                    break 'outer;
                 }
             }
         }
     }
-    if white_long_castle {
-        for i in 4..7 {
-            if square_contains[i][7] != 0 {
-                white_long_castle = false;
-                break;
+    'outer1: for x in 4..6 {
+        if square_contains[x][ypos] != 0 {
+            println!("1");
+            long_castle = false;
+            break;
+        }
+        for piece in pieces.iter() {
+            for view in piece.views.iter() {
+                if (x as i32, ypos as i32) == *view && piece.colour != king_colour {
+                    long_castle = false;
+                    break 'outer1;
+                }
             }
         }
     }
-    if white_short_castle {
-        for i in 0..2 {
-            if square_contains[i][7] != 0 {
-                white_long_castle = false;
-                break;
-            }
-        }
+    if short_castle {
+        pieces[*king_index].views.push((1, ypos as i32));
     }
-    if black_short_castle {
-        for i in 0..2 {
-            if square_contains[i][0] != 0 {
-                black_short_castle = false;
-                break;
-            }
-        }
-    }
-    if black_long_castle {
-        for i in 4..7 {
-            if square_contains[i][0] != 0 {
-                white_long_castle = false;
-                break;
-            }
-        }
+    println!("{}", long_castle);
+    if long_castle {
+        pieces[*king_index].views.push((5, ypos as i32));
     }
 }
 fn en_passant(last_move_to: &(i32,i32), last_move_from: &(i32,i32), turn: &i8, pieces: &mut Vec<ChessPieces>) {
