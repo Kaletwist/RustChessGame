@@ -22,7 +22,7 @@ fn main() {
         panic!("{}", e);
     });
     let mut pieces: Vec<pieces::ChessPieces> = pieces::ChessPieces::init();
-    update_pieces(&mut pieces, &mut square_contains);
+    update_pieces_check(&mut pieces, &mut square_contains, &turn);
     for (i, a) in board.iter_mut().enumerate() {
         for (j, b) in a.iter_mut().enumerate() {
             if i %160 < 80 && j % 160 < 80 && i < 640  || (i % 160 >= 80 && j % 160 >= 80) {
@@ -52,7 +52,7 @@ fn main() {
         mousedown =  window.get_mouse_down(minifb::MouseButton::Left);
 
         if let Some((xmouse , ymouse)) = window.get_mouse_pos(minifb::MouseMode::Clamp) {
-
+            update_pieces_check(&mut pieces, &mut square_contains, &turn);
             highlight(&mut buffer, &xmouse, &ymouse);
             check_piece = in_check(&pieces, &turn);
 
@@ -66,7 +66,15 @@ fn main() {
                     }
                     return;
                 }
-            }else if check_mate(&pieces, &turn) {
+            }
+            let mut stalemate = true;
+            for piece in pieces.iter() {
+                if piece.views.is_empty() {
+                    continue;
+                }
+                stalemate = false;
+            }
+            if stalemate {
                 println!("Stale Mate");
                 return;
             }
@@ -99,7 +107,7 @@ fn main() {
 
                         let mut mouse_up = false;
                         'outer: loop {
-                            update_pieces_check(&mut pieces, &mut square_contains, &turn);
+                            //update_pieces_check(&mut pieces, &mut square_contains, &turn);
                             en_passant(&this_move, &last_pos, &turn, &mut pieces);
                             if pieces[piece_index].role == "King" {castle(&square_contains, &mut pieces, &turn, &piece_index)};
                             mousedown = window.get_mouse_down(minifb::MouseButton::Left);
@@ -152,7 +160,7 @@ fn main() {
                                     pieces[piece_index].xpos = this_move.0;
                                     pieces[piece_index].ypos = this_move.1;
 
-                                    update_pieces(&mut pieces, &mut square_contains);
+                                    update_pieces_check(&mut pieces, &mut square_contains, &turn);
                                     place_piece(&mut pieces[piece_index], &mut board);
                                         
                                     pieces[piece_index].moved = true;
@@ -196,7 +204,6 @@ fn castle(square_contains: & Vec<Vec<i8>>, pieces: & mut Vec<ChessPieces>, turn:
     }
     'outer1: for x in 4..6 {
         if square_contains[x][ypos] != 0 {
-            println!("1");
             long_castle = false;
             break;
         }
@@ -212,7 +219,6 @@ fn castle(square_contains: & Vec<Vec<i8>>, pieces: & mut Vec<ChessPieces>, turn:
     if short_castle {
         pieces[*king_index].views.push((1, ypos as i32));
     }
-    println!("{}", long_castle);
     if long_castle {
         pieces[*king_index].views.push((5, ypos as i32));
     }
@@ -252,42 +258,41 @@ fn check_mate(pieces: & Vec<ChessPieces>, turn: &i8) -> bool {
     return true;
 }
 fn update_pieces_check(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<Vec<i8>>, turn: &i8) {
-    for x in square_contains.iter_mut() {
-        for y in x {
-            *y = 0;
-        }
-    }
-    for piece in pieces.iter_mut() {
-        let tempx = piece.xpos as usize;
-        let tempy = piece.ypos as usize;
-        let c: i8;
-        if piece.colour == "Black" {c = 2}
-        else {c = 1}
-        square_contains[tempx][tempy] = c;
-    }
+    update_pieces(pieces, square_contains);
     let mut check_pieces = pieces.clone();
     let mut current_piece: usize = 0;
     for piece in pieces.iter_mut() {
-        piece.set_views(&square_contains);
-        if (piece.colour == "Black" && *turn == 2) || (piece.colour == "White" && *turn == 1) {
-            let mut to_remove = Vec::new();
-            for (i, (xmove,ymove)) in piece.views.iter_mut().enumerate() {
-                let tempx = piece.xpos;
-                let tempy = piece.ypos;
-                check_pieces[current_piece].xpos = *xmove;
-                check_pieces[current_piece].ypos = *ymove;
-                update_pieces(&mut check_pieces, square_contains);
-                if !in_check(&check_pieces, turn).is_empty() {
-                    to_remove.push(i);
+        let mut to_remove: Vec<usize> = Vec::new();
+        for (i, (xmove,ymove)) in piece.views.iter_mut().enumerate() {
+            let tempx: i32 = piece.xpos;
+            let tempy: i32 = piece.ypos;
+            let mut to_delete: usize = usize::MAX;
+            for (td, piece) in check_pieces.iter_mut().enumerate() {
+                if piece.xpos == *xmove && piece.ypos == *ymove {
+                    to_delete = td;
+                    break;
                 }
-                check_pieces[current_piece].xpos = tempx;
-                check_pieces[current_piece].ypos = tempy;
             }
-            to_remove.sort_by(|a, b| b.cmp(a));
-            for &i in to_remove.iter() {
-                piece.views.remove(i);
-                
+            let mut removed_piece: Option<ChessPieces> = None;
+            if to_delete != usize::MAX {
+                removed_piece = Some(check_pieces[to_delete].clone());
+                check_pieces.remove(to_delete);
             }
+            check_pieces[current_piece].xpos = *xmove;
+            check_pieces[current_piece].ypos = *ymove;
+            update_pieces(&mut check_pieces, square_contains);
+            if !in_check(&check_pieces, turn).is_empty() {
+                to_remove.push(i);
+            }
+            check_pieces[current_piece].xpos = tempx;
+            check_pieces[current_piece].ypos = tempy;
+            if removed_piece.is_some() {
+                check_pieces.insert(to_delete, removed_piece.unwrap());
+            }
+        }
+        to_remove.sort_by(|a, b| b.cmp(a));
+        for &i in to_remove.iter() {
+            piece.views.remove(i);        
         }
         current_piece +=1;
     }
@@ -295,13 +300,17 @@ fn update_pieces_check(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<
 fn in_check(pieces: &Vec<ChessPieces>, turn: &i8) -> Vec<usize> {
     let king_x: i32;
     let king_y: i32;
-    let king_index: usize;
+    let mut king_index: usize;
     let mut checking_pieces: Vec<usize> = Vec::new();
     let mut piece_index: usize = 0;
-    if *turn == 1 {
-        king_index = 0;
-    }else {
-        king_index = 16;
+    king_index = 0;
+    if *turn != 1 {
+        for i in 0..16 {
+            if pieces[16 - i].role == "King" && pieces[16-i].colour == "Black" {
+            king_index = 16 - i;
+            break;
+            }
+        }
     }
     king_x = pieces[king_index].xpos;
     king_y = pieces[king_index].ypos;
