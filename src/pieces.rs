@@ -19,25 +19,7 @@ impl ChessPieces {
         let all = open(path).unwrap();
         let bufall = all.into_rgba8();
         for i in 0..12 {
-            let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(bufall.width()/6, bufall.height()/2);
-            let mut x: u32 = 0;
-            let mut y: u32 = 0;
-            let mut y_bufall: u32 = 0;
-            if i > 5 {
-                y_bufall = bufall.height()/2;
-            }
-            let x_bufall: u32 = (bufall.width() / 6) * (i % 6);    
-            while y < bufall.height()/2 {
-                img.put_pixel(x, y, *bufall.get_pixel(x + x_bufall, y + y_bufall));
-                x+= 1;
-                if x >= (bufall.width() / 6) {
-                    x = 0;
-                    y += 1;
-                }
-            }
-            let mut t: DynamicImage = DynamicImage::ImageRgba8(img);
-            t = t.resize_exact(80, 80, imageops::FilterType::Gaussian);
-            img = t.to_rgba8();
+            let img = get_piece_img(&bufall, i);
             match i {
                 0 => result.push(ChessPieces::new("White", "King", &img, 3, 7)),
                 1 => result.push(ChessPieces::new("White", "Queen", &img, 4, 7)),
@@ -106,4 +88,26 @@ impl ChessPieces {
             _ => panic!("Not a Piece")
         }
     }
+}
+
+pub fn get_piece_img(bufall: &ImageBuffer<Rgba<u8>, Vec<u8>>, i: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(bufall.width()/6, bufall.height()/2);
+    let mut x: u32 = 0;
+    let mut y: u32 = 0;
+    let mut y_bufall: u32 = 0;
+    if i > 5 {
+        y_bufall = bufall.height()/2;
+    }
+    let x_bufall: u32 = (bufall.width() / 6) * (i % 6);    
+    while y < bufall.height()/2 {
+        img.put_pixel(x, y, *bufall.get_pixel(x + x_bufall, y + y_bufall));
+        x+= 1;
+        if x >= (bufall.width() / 6) {
+            x = 0;
+            y += 1;
+        }
+    }
+    let mut t: DynamicImage = DynamicImage::ImageRgba8(img);
+    t = t.resize_exact(80, 80, imageops::FilterType::Gaussian);
+    return t.to_rgba8();
 }

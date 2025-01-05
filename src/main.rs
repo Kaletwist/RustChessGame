@@ -1,9 +1,10 @@
 mod pieces;
 mod moveset;
-use std::usize;
+use std::{io::{stdin, Read}, path::Path, usize};
 
+use image::open;
 use minifb::{Key,Window,WindowOptions};
-use pieces::ChessPieces;
+use pieces::{get_piece_img, ChessPieces};
 
 const WIDTH: usize = 640;
 const HEIGHT: usize = 700;
@@ -85,8 +86,8 @@ fn main() {
                 let mut piece_index = 0;
                 x = x / 80;
                 y = y / 80;
-
-                if square_contains[x as usize][y as usize] == turn {
+                
+                if !(y > 7 || y < 0 || x > 7 || x < 0) && square_contains[x as usize][y as usize] == turn {
                     for piece in pieces.iter() {
                         if piece.xpos == x && piece.ypos == y {
                             break;
@@ -122,6 +123,10 @@ fn main() {
                                     if !mousedown || !mouse_up || xpos != (xi as i32) || ypos != (yi as i32) {continue;}
                                     this_move = (xi as i32, yi as i32);
                                     last_pos = (pieces[piece_index].xpos, pieces[piece_index].ypos);
+                                    if pieces[piece_index].role == "Pawn" && this_move.1 == 0 || this_move.1 == 7 {
+                                        pawnpromotion(&turn, &mut pieces, piece_index);
+                                        update_pieces_check(&mut pieces, &mut square_contains, &turn);
+                                    }
                                     if (last_pos.0 - this_move.0).abs() > 1 && pieces[piece_index].role == "King" {
                                         if last_pos.0 - this_move.0 > 0 {
                                             for piece in pieces.iter_mut() {
@@ -181,6 +186,24 @@ fn main() {
             }
         window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
         }
+    }
+}
+
+fn pawnpromotion(turn: &i8, pieces: &mut Vec<ChessPieces>, pawnidx: usize) {
+    println!("Press: Q -> Queen, R -> Rook, C -> Castle, B -> Bishop");
+    let mut colour_idx_offset: u32 = 0;
+    if *turn == 2 {colour_idx_offset = 6;}
+    let mut upgrade: String = String::new();
+    stdin().read_line(&mut upgrade).expect("Incorrect char");
+    let path: &Path = Path::new("C:/Users/junio/OneDrive/Desktop/ChessBoard/ChessBoard/Chess_Pieces_Sprite.svg.png");
+    let all: image::DynamicImage = open(path).unwrap();
+    let bufall: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = all.into_rgba8();
+    match upgrade.chars().nth(0).unwrap() {
+        'Q' | 'q' => {pieces[pawnidx].role = "Queen".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 0 + colour_idx_offset)},
+        'R' | 'r' => {pieces[pawnidx].role = "Rook".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 4 + colour_idx_offset)},
+        'K' | 'k' => {pieces[pawnidx].role = "Knight".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 3 + colour_idx_offset)},
+        'B' | 'b' => {pieces[pawnidx].role = "Bishop".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 2 + colour_idx_offset)},
+        _=> {println!("Incorrect input try again"); pawnpromotion(turn, pieces, pawnidx);}, 
     }
 }
 fn castle(square_contains: & Vec<Vec<i8>>, pieces: & mut Vec<ChessPieces>, turn: &i8, king_index: &usize) {

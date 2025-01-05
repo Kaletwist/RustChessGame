@@ -27,16 +27,16 @@ pub fn pawn (piece: &ChessPieces, square_contains: &Vec<Vec<i8>>) -> Vec<(i32, i
         if is_on_board(x+1,y-1) && square_contains[(x+1) as usize][(y-1) as usize] == 2 {
             move_set.push((x + 1, y - 1));
         }
-        if is_on_board(x-1,y-1) && square_contains[(x - 1) as usize][(y - 1) as usize] == 2 {
+        if is_on_board(x-1,y-1) && square_contains[(x-1) as usize][(y - 1) as usize] == 2 {
             move_set.push((x - 1, y - 1));
         }
         if is_on_board(x,y-1) && square_contains[(x) as usize][(y-1) as usize] == 0 {move_set.push((x, y - 1));}
     }
     else if piece.colour == "Black" {
-        if is_on_board(x,y+2) && !piece.moved && square_contains[(x) as usize][(y + 2) as usize] != 2{
+        if is_on_board(x,y+2) && !piece.moved && square_contains[(x) as usize][(y + 2) as usize] != 2 {
             move_set.push((x, y + 2));
         }
-        if is_on_board(x+1,y+1) && square_contains[(x + 1) as usize][(y + 1) as usize] == 1 {
+        if is_on_board(x+1,y+1) && square_contains[(x+1) as usize][(y + 1) as usize] == 1 {
             move_set.push((x + 1, y +1));
         }
         if is_on_board(x-1,y+1) && square_contains[(x-1) as usize][(y+1) as usize] == 1 {
