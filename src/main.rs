@@ -58,7 +58,6 @@ fn main() {
             check_piece = in_check(&pieces, &turn);
 
             if !check_piece.is_empty() {
-                update_pieces_check(&mut pieces, &mut square_contains, &turn);
                 if check_mate(&pieces, &turn) {
                     if turn == 1 {
                         println!("Black Wins");
@@ -86,7 +85,6 @@ fn main() {
                 let mut piece_index = 0;
                 x = x / 80;
                 y = y / 80;
-                
                 if !(y > 7 || y < 0 || x > 7 || x < 0) && square_contains[x as usize][y as usize] == turn {
                     for piece in pieces.iter() {
                         if piece.xpos == x && piece.ypos == y {
@@ -94,7 +92,6 @@ fn main() {
                         }
                         piece_index += 1;
                     }
-
                     en_passant(&this_move, &last_pos, &turn, &mut pieces);
                     if pieces[piece_index].role == "King" {castle(&square_contains, &mut pieces, &turn, &piece_index)};
 
@@ -107,7 +104,7 @@ fn main() {
                         }
 
                         let mut mouse_up = false;
-                        'outer: loop {
+                        'outer: while window.is_open() && !window.is_key_down(Key::Escape) {
                             //update_pieces_check(&mut pieces, &mut square_contains, &turn);
                             en_passant(&this_move, &last_pos, &turn, &mut pieces);
                             if pieces[piece_index].role == "King" {castle(&square_contains, &mut pieces, &turn, &piece_index)};
@@ -190,7 +187,7 @@ fn main() {
 }
 
 fn pawnpromotion(turn: &i8, pieces: &mut Vec<ChessPieces>, pawnidx: usize) {
-    println!("Press: Q -> Queen, R -> Rook, C -> Castle, B -> Bishop");
+    println!("Press: Q -> Queen, R -> Rook, K -> Knight, B -> Bishop");
     let mut colour_idx_offset: u32 = 0;
     if *turn == 2 {colour_idx_offset = 6;}
     let mut upgrade: String = String::new();
@@ -199,7 +196,7 @@ fn pawnpromotion(turn: &i8, pieces: &mut Vec<ChessPieces>, pawnidx: usize) {
     let all: image::DynamicImage = open(path).unwrap();
     let bufall: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = all.into_rgba8();
     match upgrade.chars().nth(0).unwrap() {
-        'Q' | 'q' => {pieces[pawnidx].role = "Queen".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 0 + colour_idx_offset)},
+        'Q' | 'q' => {pieces[pawnidx].role = "Queen".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 1 + colour_idx_offset)},
         'R' | 'r' => {pieces[pawnidx].role = "Rook".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 4 + colour_idx_offset)},
         'K' | 'k' => {pieces[pawnidx].role = "Knight".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 3 + colour_idx_offset)},
         'B' | 'b' => {pieces[pawnidx].role = "Bishop".to_string(); pieces[pawnidx].pic = get_piece_img(&bufall, 2 + colour_idx_offset)},
@@ -303,7 +300,7 @@ fn update_pieces_check(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<
             }
             check_pieces[current_piece].xpos = *xmove;
             check_pieces[current_piece].ypos = *ymove;
-            update_pieces(&mut check_pieces, square_contains);
+            update_pieces(&mut check_pieces, & mut square_contains.clone());
             if !in_check(&check_pieces, turn).is_empty() {
                 to_remove.push(i);
             }
@@ -362,7 +359,6 @@ fn capture(x: &i32, y: &i32, pieces: &mut Vec<ChessPieces>, board: &mut Vec<Vec<
 fn pickup_piece(piece: &ChessPieces, board: &mut Vec<Vec<u32>>) {
     let mut x = piece.xpos * 80;
     let mut y = piece.ypos * 80;
-    println!("{},{}", x, y);
     for i in y..(y + 80) {
         for j in x..(x + 80) {
             if i %160 < 80 && j % 160 < 80 && i < 640  || (i % 160 >= 80 && j % 160 >= 80) {
@@ -393,14 +389,15 @@ fn update_pieces(pieces: &mut Vec<ChessPieces>, square_contains: &mut Vec<Vec<i8
             *y = 0;
         }
     }
-    for piece in pieces.iter_mut() {
-        let tempx = piece.xpos as usize;
-        let tempy = piece.ypos as usize;
+    for piece in pieces.iter() {
+        let tempx: usize = piece.xpos as usize;
+        let tempy: usize = piece.ypos as usize;
         let c: i8;
         if piece.colour == "Black" {c = 2}
         else {c = 1}
         square_contains[tempx][tempy] = c;
     }
+
     for piece in pieces.iter_mut() {
         piece.set_views(&square_contains);
     }
