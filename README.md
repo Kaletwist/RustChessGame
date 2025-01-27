@@ -8,4 +8,4 @@ I dont know if this was because I stubbornly refused to use any libraries other 
 
 Maybe one day I will come back and clean up this code
 
-##
+But for now jumping through loopholes to achieve memory safety while maintaining performance is rather unappealing, for fast code I think I am going to stick to C/C++ and to achieve memory safety I think I will use any other memory safe language.
