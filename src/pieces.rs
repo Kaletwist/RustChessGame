@@ -15,7 +15,7 @@ pub struct ChessPieces {
 impl ChessPieces {
     pub fn init() -> Vec<ChessPieces> {
         let mut result: Vec<ChessPieces> = Vec::new();
-        let path = Path::new("C:/Users/junio/OneDrive/Desktop/ChessBoard/ChessBoard/Chess_Pieces_Sprite.svg.png");
+        let path = Path::new("Chess_Pieces_Sprite.svg.png");
         let all = open(path).unwrap();
         let bufall = all.into_rgba8();
         for i in 0..12 {
