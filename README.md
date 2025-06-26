@@ -1,11 +1,7 @@
-## Why did I make this project?
-I took a university course where half the semester was in Rust, I could not stand rust.
-I built this project to see if I could change my mind on it. 
+## About the project
+I was interested in how rust managed to atain memory safety while acheiving speeds close to C/C++
+I wanted to see if there was any trade offs and if I would enjoy the language.
 
-It turns out I couldn't I ended up rushing through the project writing ugly code and not even completing it. 
-
-I dont know if this was because I stubbornly refused to use any libraries other than one to create a window but I didn't end up even completing the project as I got sick of writing rust code.
-
-Maybe one day I will come back and clean up this code
-
-But for now jumping through loopholes to achieve memory safety while maintaining performance is rather unappealing, for fast code I think I am going to stick to C/C++ and to achieve memory safety I think I will use any other memory safe language.
+I came to the conclusion that while I can see how useful rust is, battling with the compiler is not very enjoyable and for fututre projects I would be inclined to use something more enjoyable.
+If rust could improve the compiler speed it would be great but having to wait over a minute on a small project like this before the compiler tells you about your error was quite frustrating.
+In a proffesional security focused setting I could see rust being of great use but would hate to see how long a large project takes to compile
